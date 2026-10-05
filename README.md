@@ -98,9 +98,18 @@ cd Maxdots
 pnpm install
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure Credentials (In-App Key Input or Environment)
 
-Copy the example environment file and configure your API keys:
+Maxdots offers two ways to provide credentials:
+
+#### 🔑 In-App Key Input & Save (Recommended)
+You don't need to manually edit configuration files. Simply open the app and go to **Settings → Devices and models**:
+- **Key Input Field**: Paste your key directly into the secure input box (`sk-...`, `AIza...`, `sk-or-...`, or `e2b_...`).
+- **Live Validation & Instant Save**: Click **Save**—Maxdots checks key validity with the provider, securely stores it encrypted (AES-256), and immediately connects your models.
+- **Easy Override & Remove**: You can click **Override Key** or **Change** at any time to update keys without restarting the application.
+
+#### ⚙️ Environment Variables (`.env.local`)
+Alternatively, copy the example environment file and configure your API keys:
 
 ```bash
 cp .env.example .env.local

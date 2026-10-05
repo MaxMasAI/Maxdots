@@ -29,15 +29,15 @@ function isValidKey(key: string | undefined | null): boolean {
 }
 
 function apiKey(): string | null {
-  if (isValidKey(process.env.OPENAI_API_KEY)) return process.env.OPENAI_API_KEY!.trim();
   const sealed = getSetting(KEY_SETTING);
-  if (!sealed) return null;
-  try {
-    const unsealed = unseal(sealed);
-    return isValidKey(unsealed) ? unsealed.trim() : null;
-  } catch {
-    return null;
+  if (sealed) {
+    try {
+      const unsealed = unseal(sealed);
+      if (isValidKey(unsealed)) return unsealed.trim();
+    } catch {}
   }
+  if (isValidKey(process.env.OPENAI_API_KEY)) return process.env.OPENAI_API_KEY!.trim();
+  return null;
 }
 
 export function hasKey(): boolean {
@@ -46,7 +46,14 @@ export function hasKey(): boolean {
 
 /** Where the key came from, for Settings. */
 export function keySource(): "env" | "settings" | null {
-  return process.env.OPENAI_API_KEY ? "env" : getSetting(KEY_SETTING) ? "settings" : null;
+  const sealed = getSetting(KEY_SETTING);
+  if (sealed) {
+    try {
+      const unsealed = unseal(sealed);
+      if (isValidKey(unsealed)) return "settings";
+    } catch {}
+  }
+  return isValidKey(process.env.OPENAI_API_KEY) ? "env" : null;
 }
 
 export function openai(): OpenAI {
@@ -61,12 +68,18 @@ export function openai(): OpenAI {
 
 /** Check the key works, then save it (encrypted) and re-pick models for it. Returns an error message or null. */
 export async function saveApiKey(key: string): Promise<string | null> {
+  const trimmed = key.trim();
+  if (!trimmed) {
+    setSetting(KEY_SETTING, null);
+    resetModels();
+    return null;
+  }
   try {
-    await new OpenAI({ apiKey: key }).models.list();
+    await new OpenAI({ apiKey: trimmed }).models.list();
   } catch (err) {
     return err instanceof Error && /401|Incorrect API key|invalid/i.test(err.message) ? "OpenAI didn't accept that key." : `Couldn't check the key: ${err instanceof Error ? err.message : String(err)}`;
   }
-  setSetting(KEY_SETTING, seal(key));
+  setSetting(KEY_SETTING, seal(trimmed));
   resetModels();
   return null;
 }

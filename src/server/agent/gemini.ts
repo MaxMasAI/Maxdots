@@ -29,19 +29,26 @@ function envKey(): string | null {
 }
 
 function apiKey(): string | null {
-  if (envKey()) return envKey();
   const sealed = getSetting(KEY_SETTING);
-  if (!sealed) return null;
-  try {
-    const unsealed = unseal(sealed);
-    return isValidKey(unsealed) ? unsealed.trim() : null;
-  } catch {
-    return null;
+  if (sealed) {
+    try {
+      const unsealed = unseal(sealed);
+      if (isValidKey(unsealed)) return unsealed.trim();
+    } catch {}
   }
+  if (envKey()) return envKey();
+  return null;
 }
 
 export function geminiSource(): "env" | "settings" | null {
-  return envKey() ? "env" : getSetting(KEY_SETTING) ? "settings" : null;
+  const sealed = getSetting(KEY_SETTING);
+  if (sealed) {
+    try {
+      const unsealed = unseal(sealed);
+      if (isValidKey(unsealed)) return "settings";
+    } catch {}
+  }
+  return envKey() ? "env" : null;
 }
 
 export function geminiKey(): string | null {
@@ -195,15 +202,15 @@ export const geminiModelName = (model: string) => model.slice(model.indexOf(":")
 export const geminiClient = (model: string) => (isVertexModel(model) ? vertex() : gemini());
 
 export async function saveGeminiKey(key: string): Promise<string | null> {
-  if (envKey()) return "The Gemini key is set by GEMINI_API_KEY.";
-  if (!key) {
+  const trimmed = key.trim();
+  if (!trimmed) {
     setSetting(KEY_SETTING, null);
     g.__dotsGemini = undefined;
     g.__dotsGeminiModels = undefined;
     return null;
   }
   try {
-    const response = await fetch(MODELS_URL, { headers: { "x-goog-api-key": key } });
+    const response = await fetch(MODELS_URL, { headers: { "x-goog-api-key": trimmed } });
     if (response.status === 401 || response.status === 403) return "Google didn't accept that Gemini API key.";
     if (!response.ok) return `Couldn't check the Gemini key with Google (${response.status}).`;
   } catch (err) {

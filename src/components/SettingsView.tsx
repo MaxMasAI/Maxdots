@@ -936,18 +936,19 @@ function ApiKey() {
   const [key, setKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const open = editing || !computer.hasKey;
+  const isEnvFailed = computer.keySource === "env" && openAiModelCount === 0;
+  const open = editing || !computer.hasKey || isEnvFailed;
 
   return (
     <div id="api-key" className="surface mb-3 p-4">
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <div className="text-[14px]">OpenAI API key</div>
-          <div className={`text-body-sm ${computer.hasKey ? "text-foreground/55" : "text-warning"}`}>
+          <div className={`text-body-sm ${isEnvFailed ? "text-warning" : computer.hasKey ? "text-foreground/55" : "text-warning"}`}>
             {computer.keySource === "env"
               ? openAiModelCount
                 ? "Connected from OPENAI_API_KEY."
-                : "OPENAI_API_KEY is set, but OpenAI returned no available models. Check the key or use another provider below."
+                : "OPENAI_API_KEY is set, but OpenAI returned no available models. Enter a working key below to save and connect."
               : computer.hasKey
                 ? "Connected. Stored encrypted on this computer."
                 : computer.gemini || computer.vertex || computer.openRouter
@@ -955,13 +956,34 @@ function ApiKey() {
                   : "Add a provider key to run your dots. Create an OpenAI key at platform.openai.com."}
           </div>
         </div>
-        {computer.hasKey && computer.keySource !== "env" && !editing && (
-          <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
-            Change
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {computer.keySource === "settings" && !editing && (
+            <>
+              <button
+                className="btn-quiet h-8 px-3 text-[13px]"
+                disabled={pending}
+                onClick={() => {
+                  start(async () => {
+                    const err = await setOpenAIKey("");
+                    setError(err);
+                  });
+                }}
+              >
+                Remove
+              </button>
+              <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+                Change
+              </button>
+            </>
+          )}
+          {computer.keySource === "env" && !editing && !isEnvFailed && (
+            <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+              Override Key
+            </button>
+          )}
+        </div>
       </div>
-      {open && computer.keySource !== "env" && (
+      {open && (
         <form
           className="mt-3 flex gap-2"
           onSubmit={(e) => {
@@ -973,10 +995,31 @@ function ApiKey() {
             });
           }}
         >
-          <input className="field font-mono text-[13px]" type="password" placeholder="sk-..." value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off" />
+          <input
+            className="field font-mono text-[13px]"
+            type="password"
+            placeholder="Paste your OpenAI API key (sk-... or sk-proj-...)"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            autoComplete="off"
+            autoFocus={open}
+          />
           <button className="btn-primary shrink-0" disabled={pending || !key.trim()}>
             {pending ? "Checking…" : "Save"}
           </button>
+          {editing && !isEnvFailed && (
+            <button
+              type="button"
+              className="btn-quiet shrink-0"
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+                setKey("");
+              }}
+            >
+              Cancel
+            </button>
+          )}
         </form>
       )}
       {error && <p className="mt-2 text-caption text-destructive">{error}</p>}
@@ -1014,18 +1057,25 @@ function CloudKey() {
                 : "Paste an E2B API key (from e2b.dev) to give each dot a cloud computer that keeps working while your PC sleeps."}
           </div>
         </div>
-        {computer.cloudKey === "settings" && !editing && (
-          <>
-            <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("")}>
-              Remove
-            </button>
+        <div className="flex items-center gap-2">
+          {computer.cloudKey === "settings" && !editing && (
+            <>
+              <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("")}>
+                Remove
+              </button>
+              <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+                Change
+              </button>
+            </>
+          )}
+          {computer.cloudKey === "env" && !editing && (
             <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
-              Change
+              Override Key
             </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
-      {(editing || !saved) && computer.cloudKey !== "env" && (
+      {(editing || !saved) && (
         <form
           className="mt-3 flex gap-2"
           onSubmit={(e) => {
@@ -1037,6 +1087,19 @@ function CloudKey() {
           <button className="btn-primary shrink-0" disabled={pending || !key.trim()}>
             {pending ? "Checking…" : "Save"}
           </button>
+          {editing && (
+            <button
+              type="button"
+              className="btn-quiet shrink-0"
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+                setKey("");
+              }}
+            >
+              Cancel
+            </button>
+          )}
         </form>
       )}
       {error && <p className="mt-2 text-caption text-destructive">{error}</p>}
@@ -1053,6 +1116,7 @@ function OpenModelsKey() {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const saved = computer.openRouter !== null;
+  const isEnvFailed = computer.openRouter === "env" && openCount === 0;
   const save = (value: string) =>
     start(async () => {
       const err = await setOpenRouterKey(value);
@@ -1075,18 +1139,25 @@ function OpenModelsKey() {
                 : "Paste an OpenRouter key (from openrouter.ai) to run dots on open models like Qwen, DeepSeek, Kimi, GLM and Llama."}
           </div>
         </div>
-        {computer.openRouter === "settings" && !editing && (
-          <>
-            <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("")}>
-              Remove
-            </button>
+        <div className="flex items-center gap-2">
+          {computer.openRouter === "settings" && !editing && (
+            <>
+              <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("")}>
+                Remove
+              </button>
+              <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+                Change
+              </button>
+            </>
+          )}
+          {computer.openRouter === "env" && !editing && (
             <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
-              Change
+              Override Key
             </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
-      {(editing || !saved) && computer.openRouter !== "env" && (
+      {(editing || !saved || isEnvFailed) && (
         <form
           className="mt-3 flex gap-2"
           onSubmit={(e) => {
@@ -1098,6 +1169,19 @@ function OpenModelsKey() {
           <button className="btn-primary shrink-0" disabled={pending || !key.trim()}>
             {pending ? "Checking…" : "Save"}
           </button>
+          {editing && !isEnvFailed && (
+            <button
+              type="button"
+              className="btn-quiet shrink-0"
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+                setKey("");
+              }}
+            >
+              Cancel
+            </button>
+          )}
         </form>
       )}
       {error && <p className="mt-2 text-caption text-destructive">{error}</p>}
@@ -1114,6 +1198,7 @@ function GeminiKey() {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const saved = computer.gemini !== null;
+  const isEnvFailed = computer.gemini === "env" && modelCount === 0;
   const save = (value: string) =>
     start(async () => {
       const err = await setGeminiKey(value);
@@ -1136,18 +1221,25 @@ function GeminiKey() {
                 : "Add a Gemini API key from Google AI Studio to use Gemini models for chat and voice calls."}
           </div>
         </div>
-        {computer.gemini === "settings" && !editing && (
-          <>
-            <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("")}>
-              Remove
-            </button>
+        <div className="flex items-center gap-2">
+          {computer.gemini === "settings" && !editing && (
+            <>
+              <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("")}>
+                Remove
+              </button>
+              <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+                Change
+              </button>
+            </>
+          )}
+          {computer.gemini === "env" && !editing && (
             <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
-              Change
+              Override Key
             </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
-      {(editing || !saved) && computer.gemini !== "env" && (
+      {(editing || !saved || isEnvFailed) && (
         <form
           className="mt-3 flex gap-2"
           onSubmit={(e) => {
@@ -1159,6 +1251,19 @@ function GeminiKey() {
           <button className="btn-primary shrink-0" disabled={pending || !key.trim()}>
             {pending ? "Checking…" : "Save"}
           </button>
+          {editing && !isEnvFailed && (
+            <button
+              type="button"
+              className="btn-quiet shrink-0"
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+                setKey("");
+              }}
+            >
+              Cancel
+            </button>
+          )}
         </form>
       )}
       {error && <p className="mt-2 text-caption text-destructive">{error}</p>}

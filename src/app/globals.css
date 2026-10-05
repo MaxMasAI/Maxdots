@@ -1,0 +1,238 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/*
+ * M-dots enterprise workspace theme, using the charcoal surfaces and purple accent
+ * of Microsoft Teams while retaining M-dots' own identity and controls.
+ * Geist Sans never goes bold (400/500 only); JetBrains Mono carries the chrome.
+ */
+
+:root {
+  --background: #1f1f1f;
+  --card: #242424;
+  --popover: #292929;
+  --sidebar: #141414;
+  --rail: #0f0f0f;
+  --foreground: #f5f5f5;
+
+  --brand: #6264a7;
+  --brand-hover: #55579a;
+  --brand-active: #464775;
+  --brand-readable: #a6a7dc;
+
+  --highlight: #d4ff4a;
+  --highlight-foreground: #0f0f0f;
+
+  --border: #414141;
+  --ring: #8585d2;
+
+  --destructive: oklch(0.577 0.215 27.3);
+  --success: oklch(0.546 0.16 155.8);
+  --warning: oklch(0.666 0.16 75);
+
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.2;
+  --tracking-default: -0.011em;
+
+  --container-page: 1240px;
+  --container-prose: 720px;
+  --container-narrow: 520px;
+  --container-tight: 380px;
+}
+
+@theme inline {
+  --radius-xs: 4px;
+  --shadow-elevated: 0 24px 60px -22px rgba(0, 0, 0, 0.12), 0 6px 18px -10px rgba(0, 0, 0, 0.06);
+
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-sidebar: var(--sidebar);
+  --color-rail: var(--rail);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-active: var(--brand-active);
+  --color-brand-readable: var(--brand-readable);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 999px; background: #5a5a5a; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background-color: #777; }
+  ::selection {
+    background: color-mix(in oklab, var(--brand) 30%, transparent);
+  }
+}
+
+@layer components {
+  /* Typography tokens: size + weight + leading + tracking bundled together. */
+  .text-display { @apply font-sans text-4xl leading-none font-normal tracking-tight md:text-5xl lg:text-[56px]; }
+  .text-h1 { @apply font-sans text-2xl leading-tight font-normal tracking-tight md:text-4xl; }
+  .text-h2 { @apply font-sans text-xl leading-tight font-medium tracking-tight; }
+  .text-h3 { @apply font-sans text-lg leading-snug font-normal; }
+  .text-body-lg { @apply font-sans text-lg leading-normal tracking-default; }
+  .text-body { @apply font-sans text-base leading-normal tracking-default; }
+  .text-body-sm { @apply font-sans text-sm leading-normal tracking-default; }
+  .text-caption { @apply font-sans text-xs leading-normal tracking-default; }
+  .text-mono-md { @apply font-mono text-[13px] leading-relaxed; }
+  .text-mono-sm { @apply font-mono text-[11px] leading-snug; }
+  .text-mono-xs { @apply font-mono text-[10px] leading-snug; }
+}
+
+/* ── Shared app components ─────────────────────────────────────────────── */
+
+/* The recurring category label: mono, uppercase, wide tracking. */
+@utility eyebrow {
+  @apply font-mono text-[11px] leading-snug tracking-wider text-foreground/50 uppercase;
+}
+
+@utility btn {
+  @apply inline-flex h-9 items-center justify-center gap-2 rounded-md px-3.5 font-sans text-[14px] font-normal tracking-default whitespace-nowrap transition-[opacity,background-color,border-color,color] duration-150 select-none disabled:pointer-events-none disabled:opacity-40;
+}
+@utility btn-primary {
+  @apply btn bg-brand text-white hover:bg-brand-hover active:bg-brand-active;
+}
+@utility btn-secondary {
+  @apply btn border border-white/10 bg-card text-foreground hover:border-white/20 hover:bg-popover;
+}
+@utility btn-brand {
+  @apply btn bg-brand text-white hover:bg-brand-hover active:bg-brand-active;
+}
+@utility btn-quiet {
+  @apply btn h-8 px-2.5 text-[13px] text-foreground/60 hover:bg-white/[0.08] hover:text-foreground;
+}
+
+@utility field {
+  @apply h-9 w-full rounded-md border border-white/10 bg-card px-3 font-sans text-[14px] tracking-default text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-foreground/40 focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(98,100,167,0.25)];
+}
+
+@utility surface {
+  @apply rounded-xl border border-white/[0.08] bg-card;
+}
+
+/* Hairline page frame, the landing site's vertical rails. */
+@utility rails {
+  @apply border-x border-white/[0.08];
+}
+
+/* Dotted field used behind 3D stages. */
+@utility dot-grid {
+  background-image: radial-gradient(rgba(15, 15, 15, 0.09) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+@keyframes dot-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 45%, transparent); }
+  100% { box-shadow: 0 0 0 5px transparent; }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, rgba(15, 15, 15, 0.4) 20%, rgba(15, 15, 15, 0.95) 50%, rgba(15, 15, 15, 0.4) 80%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.2s linear infinite;
+}
+
+.live-dot {
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+
+/* Markdown replies, tuned to the body tokens. */
+.dot-prose {
+  @apply prose max-w-none font-sans text-[15px] leading-[1.6] tracking-default text-foreground/85;
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-links: var(--brand-readable);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-th-borders: rgba(0, 0, 0, 0.1);
+  --tw-prose-td-borders: rgba(0, 0, 0, 0.06);
+  --tw-prose-bullets: rgba(0, 0, 0, 0.3);
+  --tw-prose-counters: rgba(0, 0, 0, 0.45);
+}
+.dot-prose > :first-child {
+  margin-top: 0;
+}
+.dot-prose > :last-child {
+  margin-bottom: 0;
+}
+.dot-prose :where(h1, h2, h3, h4, strong, th) {
+  font-weight: 500;
+}
+.dot-prose :where(code):not(:where(pre code)) {
+  @apply rounded-xs bg-black/[0.05] px-1 py-0.5 font-mono text-[13px] font-normal;
+}
+.dot-prose :where(code):not(:where(pre code))::before,
+.dot-prose :where(code):not(:where(pre code))::after {
+  content: none;
+}
+.dot-prose :where(pre) {
+  @apply rounded-lg border border-black/[0.06] bg-popover font-mono text-[13px] text-foreground;
+}
+.dot-prose :where(table) {
+  @apply text-[14px];
+}
+.dot-prose :where(th) {
+  @apply font-mono text-[11px] tracking-wider text-foreground/50 uppercase;
+}
+.dot-prose :where(a) {
+  @apply no-underline hover:underline;
+}
+
+/* Keep legacy translucent black utility classes legible on the dark workspace. */
+[class*="border-black/"] { border-color: rgb(255 255 255 / 12%) !important; }
+[class*="divide-black/"] { --tw-divide-color: rgb(255 255 255 / 10%) !important; }
+[class*="bg-black/"]:not([class*="hover:bg-black/"]) { background-color: rgb(255 255 255 / 6%) !important; }
+[class*="hover:bg-black/"]:hover { background-color: rgb(255 255 255 / 9%) !important; }
+[class~="bg-white"] { background-color: var(--popover) !important; }
+[class~="text-black"] { color: var(--foreground) !important; }
+
+.boot-splash {
+  background: radial-gradient(ellipse at 50% 45%, rgb(98 100 167 / 16%), transparent 38%), #1c1c1c;
+}
+
+.boot-mark {
+  animation: boot-float 2.2s ease-in-out infinite;
+  filter: drop-shadow(0 12px 30px rgb(77 75 229 / 22%));
+}
+
+@keyframes boot-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.025); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-mark { animation: none; }
+}

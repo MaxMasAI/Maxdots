@@ -1,0 +1,8 @@
+{
+  "name": "maxdots",
+  "productName": "Maxdots",
+  "version": "0.1.0",
+  "description": "Open-source personal AI agents that work on their own",
+  "main": "main.mjs",
+  "author": "Composio"
+}

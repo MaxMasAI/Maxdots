@@ -578,7 +578,7 @@ function AboutSection() {
 
       {/* Version & Build Grid */}
       <div className="surface mb-5 divide-y divide-black/[0.06] overflow-hidden">
-        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="text-[11px] font-medium text-foreground/45 uppercase tracking-wider">Version</div>
             <div className="mt-1 flex items-center gap-2 text-[14px] font-semibold text-white">
@@ -602,7 +602,7 @@ function AboutSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 md:grid-cols-3 bg-black/[0.02]">
+        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 bg-black/[0.02]">
           <div className="flex items-center gap-2.5 text-[12px] text-foreground/60">
             <Cpu className="size-4 text-[#7b83eb]" />
             <span>Runtime: Next.js 16 (React 19) · Electron 44</span>

@@ -251,6 +251,13 @@ pnpm desktop:build
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
 
+---
+
+## 🔗 Stay Connected
+
+Follow our updates and join the discussion! Check out our latest post on LinkedIn:  
+[Read the announcement on LinkedIn](https://lnkd.in/p/dKgmPgfy)
+
 
 
 

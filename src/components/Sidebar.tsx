@@ -220,13 +220,13 @@ export default function Sidebar() {
   return (
     <>
       {/* Phones / narrow windows: the sidebar is a drawer over a dimmed backdrop */}
-      {drawerOpen && <div className="fixed inset-0 z-40 bg-black/25 md:hidden" onClick={() => setSidebarOpen(false)} />}
+      {drawerOpen && <div className="fixed inset-0 z-40 bg-black/25 lg:hidden" onClick={() => setSidebarOpen(false)} />}
       <aside
         // Picking anything in the drawer closes it.
         onClickCapture={(e) => (e.target as HTMLElement).closest("a") && setSidebarOpen(false)}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[336px] max-w-[90vw] shrink-0 bg-sidebar shadow-2xl transition-[width,transform] duration-200 md:static md:z-auto md:max-w-none md:translate-x-0 md:shadow-none ${sidebarCollapsed ? "md:w-16" : "md:w-[336px]"} ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[336px] max-w-[90vw] shrink-0 bg-sidebar shadow-2xl transition-[width,transform] duration-200 lg:static lg:z-auto lg:max-w-none lg:translate-x-0 lg:shadow-none ${sidebarCollapsed ? "lg:w-16" : "lg:w-[336px]"} ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-      <nav aria-label="Main navigation" className="hidden w-16 shrink-0 flex-col items-center gap-2 bg-rail py-3 text-white md:flex">
+      <nav aria-label="Main navigation" className="hidden w-16 shrink-0 flex-col items-center gap-2 bg-rail py-3 text-white lg:flex">
         <button
           type="button"
           onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
@@ -529,7 +529,7 @@ function SettingsNavigation() {
       <div className="flex h-14 shrink-0 items-center border-b border-white/[0.08] px-5">
         <h2 className="text-[16px] font-semibold tracking-tight">Settings</h2>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col px-3 py-4 md:px-4">
+      <div className="flex min-h-0 flex-1 flex-col px-3 py-4 lg:px-4">
         <label className="relative mb-4 block shrink-0">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-foreground/45" />
           <input

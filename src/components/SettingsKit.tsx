@@ -9,7 +9,7 @@ import type { RuleDecision } from "@/lib/types";
 /** Two-column settings block: label + description on the left, controls on the right. */
 export function Section({ id, eyebrow, title, description, children }: { id?: string; eyebrow?: string; title: string; description?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section id={id} className="grid gap-5 border-t border-black/[0.06] py-8 first:border-t-0 first:pt-2 md:grid-cols-[240px_1fr] md:gap-10">
+    <section id={id} className="grid gap-5 border-t border-black/[0.06] py-8 first:border-t-0 first:pt-2 lg:grid-cols-[240px_1fr] lg:gap-10">
       <div>
         {eyebrow && <div className="eyebrow mb-1.5">{eyebrow}</div>}
         <h2 className="text-[15px] leading-snug font-medium">{title}</h2>

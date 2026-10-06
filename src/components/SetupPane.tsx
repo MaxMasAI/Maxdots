@@ -35,6 +35,8 @@ export default function SetupPane({ dot }: { dot: Dot }) {
   const [routine, setRoutine] = useState({ name: "", instruction: "", schedule: "0 8 * * *" });
   const [routineError, setRoutineError] = useState<string | null>(null);
   const [skillOpen, setSkillOpen] = useState<string | null>(null);
+  const [skillFormOpen, setSkillFormOpen] = useState(false);
+  const [skillDraft, setSkillDraft] = useState({ name: "", description: "", body: "" });
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
 
@@ -185,25 +187,49 @@ export default function SetupPane({ dot }: { dot: Dot }) {
           </div>
         </Section>
 
-        <Section eyebrow="Skills" title="Repeatable know-how" description="Markdown instructions it follows for tasks it repeats. Ask your dot to save one after it figures something out.">
-          {skills.length > 0 ? (
-            <div className="surface divide-y divide-black/[0.06]">
-              {skills.map((k) => (
-                <div key={k.id} className="py-2.5 pr-2 pl-4">
-                  <div className="flex items-center gap-3">
-                    <button className="min-w-0 flex-1 text-left" onClick={() => setSkillOpen(skillOpen === k.id ? null : k.id)}>
-                      <span className="block text-[14px]">{k.name}</span>
-                      <span className="block truncate text-body-sm text-foreground/55">{k.description}</span>
-                    </button>
-                    <RemoveButton label="Delete skill" onClick={() => start(() => actions.deleteSkill(k.id))} />
+        <Section eyebrow="Skills" title="Repeatable know-how" description="Markdown instructions it follows for tasks it repeats. Ask your dot to save one after it figures something out, or add one manually.">
+          <div className="space-y-3">
+            {skills.length > 0 ? (
+              <div className="surface divide-y divide-black/[0.06]">
+                {skills.map((k) => (
+                  <div key={k.id} className="py-2.5 pr-2 pl-4">
+                    <div className="flex items-center gap-3">
+                      <button className="min-w-0 flex-1 text-left" onClick={() => setSkillOpen(skillOpen === k.id ? null : k.id)}>
+                        <span className="block text-[14px]">{k.name}</span>
+                        <span className="block truncate text-body-sm text-foreground/55">{k.description}</span>
+                      </button>
+                      <RemoveButton label="Delete skill" onClick={() => start(() => actions.deleteSkill(k.id))} />
+                    </div>
+                    {skillOpen === k.id && <pre className="mt-2 mr-2 rounded-md bg-popover p-3 font-mono text-[12px] whitespace-pre-wrap text-foreground/75">{k.body}</pre>}
                   </div>
-                  {skillOpen === k.id && <pre className="mt-2 mr-2 rounded-md bg-popover p-3 font-mono text-[12px] whitespace-pre-wrap text-foreground/75">{k.body}</pre>}
+                ))}
+              </div>
+            ) : (
+              <Empty>No skills yet.</Empty>
+            )}
+
+            {skillFormOpen ? (
+              <form
+                className="surface flex flex-col gap-3 p-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  start(() => actions.saveSkill(dot.id, skillDraft.name, skillDraft.description, skillDraft.body));
+                  setSkillDraft({ name: "", description: "", body: "" });
+                  setSkillFormOpen(false);
+                }}
+              >
+                <input className="field font-mono text-[13px]" placeholder="Skill name (e.g. format_report)" value={skillDraft.name} onChange={(e) => setSkillDraft({ ...skillDraft, name: e.target.value })} required />
+                <input className="field text-[13px]" placeholder="Short description" value={skillDraft.description} onChange={(e) => setSkillDraft({ ...skillDraft, description: e.target.value })} required />
+                <textarea className="field min-h-32 resize-y font-mono text-[13px] leading-relaxed" placeholder="Markdown instructions..." value={skillDraft.body} onChange={(e) => setSkillDraft({ ...skillDraft, body: e.target.value })} required />
+                <div className="flex gap-2">
+                  <button className="btn-primary" disabled={pending || !skillDraft.name.trim() || !skillDraft.body.trim()}>Save skill</button>
+                  <button type="button" className="btn-quiet" onClick={() => setSkillFormOpen(false)}>Cancel</button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <Empty>No skills yet.</Empty>
-          )}
+              </form>
+            ) : (
+              <button className="btn-secondary" onClick={() => setSkillFormOpen(true)}>Add skill manually…</button>
+            )}
+          </div>
         </Section>
 
         <Section eyebrow="Danger zone" title={`Delete ${dot.name}`} description="Removes its chat, memory, routines, triggers, and computer. This can't be undone.">

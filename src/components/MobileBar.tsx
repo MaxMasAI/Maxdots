@@ -13,7 +13,7 @@ import DotOrb from "./DotOrb";
 /** Opens the sidebar drawer on small screens. */
 export function MenuButton() {
   return (
-    <button className="btn-quiet size-9 shrink-0 p-0 md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+    <button className="btn-quiet size-9 shrink-0 p-0 lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
       <Menu className="size-5" strokeWidth={1.75} />
     </button>
   );
@@ -24,7 +24,7 @@ export default function MobileBar() {
   const pathname = usePathname();
   if (pathname.startsWith("/dots/")) return null;
   return (
-    <div className="flex h-12 shrink-0 items-center gap-2 border-b border-black/[0.06] px-2 md:hidden">
+    <div className="flex h-12 shrink-0 items-center gap-2 border-b border-black/[0.06] px-2 lg:hidden">
       <MenuButton />
       <Link href="/" className="mr-auto">
         <Wordmark />
@@ -48,6 +48,7 @@ export function HubBar() {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const topInputRef = useRef<HTMLInputElement>(null);
   const activeDot = pathname.match(/^\/dots\/([^/]+)/)?.[1];
+  const currentDot = activeDot ? dots.find((d) => d.id === activeDot) : null;
 
   const matchingDots = useMemo(() => {
     const q = topQuery.trim().toLowerCase();
@@ -60,6 +61,19 @@ export function HubBar() {
     if (!q) return [];
     return conversations.filter((c) => c.title.toLowerCase().includes(q)).slice(0, 5);
   }, [conversations, topQuery]);
+
+  const matchingStatic = useMemo(() => {
+    const q = topQuery.trim().toLowerCase();
+    if (!q) return [];
+    const STATIC_ROUTES = [
+      { title: "Settings", path: "/settings", icon: Settings },
+      { title: "Apps & Integrations", path: "/apps", icon: Command },
+      { title: "Calls", path: "/calls", icon: Smartphone },
+      { title: "Teams & Channels", path: "/channels", icon: MessageSquare },
+      { title: "New M-dot", path: "/new", icon: Sparkles },
+    ];
+    return STATIC_ROUTES.filter((r) => r.title.toLowerCase().includes(q) || r.path.toLowerCase().includes(q)).slice(0, 3);
+  }, [topQuery]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -161,8 +175,10 @@ export function HubBar() {
 
   return (
     <>
-    <header className="hidden h-14 shrink-0 items-center gap-4 border-b border-black/[0.08] bg-card px-5 md:flex">
-      <span className="min-w-24 text-[15px] font-medium">{title}</span>
+    <header className="hidden h-14 shrink-0 items-center justify-between gap-4 border-b border-black/[0.08] bg-card px-5 lg:flex">
+      <div className="flex flex-1 basis-0 items-center min-w-0">
+        <span className="truncate text-[15px] font-medium">{title}</span>
+      </div>
       <div className="relative w-full max-w-[540px]">
         <div className="relative flex h-9 w-full items-center">
           <Search className="pointer-events-none absolute left-3 size-4 text-foreground/45" strokeWidth={1.8} />
@@ -171,7 +187,7 @@ export function HubBar() {
             id="hubbar-search-input"
             type="text"
             className="field h-9 w-full rounded-md border border-black/[0.09] bg-sidebar pl-9 pr-14 text-[13px] text-foreground placeholder-foreground/50 transition-colors focus:border-black/25 focus:bg-card focus:outline-none"
-            placeholder="Search chats and dots"
+            placeholder="Search settings, apps, dots, chats..."
             value={topQuery}
             onChange={(e) => {
               setTopQuery(e.target.value);
@@ -261,19 +277,42 @@ export function HubBar() {
                 </div>
               )}
 
-              {matchingDots.length === 0 && matchingConvs.length === 0 && (
+              {matchingStatic.length > 0 && (
+                <div className="mb-2">
+                  <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-foreground/45">
+                    Pages ({matchingStatic.length})
+                  </div>
+                  {matchingStatic.map((r) => (
+                    <button
+                      key={r.path}
+                      type="button"
+                      onClick={() => {
+                        router.push(r.path);
+                        setDropdownOpen(false);
+                        setTopQuery("");
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left hover:bg-black/[0.04] transition-colors"
+                    >
+                      <r.icon className="size-3.5 text-foreground/45 shrink-0" />
+                      <span className="truncate text-[13px] font-medium text-foreground">{r.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {matchingDots.length === 0 && matchingConvs.length === 0 && matchingStatic.length === 0 && (
                 <div className="px-3 py-4 text-center text-[13px] text-foreground/45">
-                  No matching chats or dots found
+                  No matching results found
                 </div>
               )}
             </div>
           </>
         )}
       </div>
-      <div className="relative ml-auto flex items-center gap-3">
+      <div className="relative flex flex-1 basis-0 items-center justify-end gap-3 min-w-0">
         <span className="hidden items-center gap-1.5 text-[12px] text-foreground/55 lg:flex">
           <span className={`size-2 rounded-full ${connected ? "bg-success" : "bg-foreground/25"}`} />
-          {connected ? "Available" : "Connecting"}
+          {connected ? (currentDot ? currentDot.name : "All dots") : "Connecting..."}
         </span>
         <span className="hidden h-5 w-px bg-black/10 lg:block" />
         
@@ -453,7 +492,7 @@ export function HubBar() {
           )}
         </div>
 
-        <Link href="/settings" aria-label="M-dots profile" className="flex size-8 items-center justify-center rounded-full bg-rail text-[12px] font-medium text-white ring-2 ring-black/[0.05]">
+        <Link href="/settings" aria-label="M-dots profile" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-rail text-[12px] font-medium text-white ring-2 ring-black/[0.05]">
           M
         </Link>
       </div>

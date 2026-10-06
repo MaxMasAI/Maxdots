@@ -13,6 +13,14 @@ import { apps, signedIn } from "./composio";
 import { getSetting } from "./db";
 import type { ComputerInfo, Snapshot } from "@/lib/types";
 
+export function livekitSource(): "env" | "settings" | null {
+  const env = process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET;
+  if (env) return "env";
+  const set = getSetting("livekit_url") && getSetting("livekit_key") && getSetting("livekit_secret");
+  if (set) return "settings";
+  return null;
+}
+
 export function computerInfo(): ComputerInfo {
   const m = knownModels();
   return {
@@ -28,6 +36,7 @@ export function computerInfo(): ComputerInfo {
     openRouter: openRouterSource(),
     gemini: geminiSource(),
     vertex: vertexSource(),
+    livekit: livekitSource(),
     vertexProject: vertexProject(),
     vertexLocation: vertexLocation(),
     dotReaction: getSetting("dots_reaction") === "cute" ? "cute" : "professional",

@@ -4,6 +4,7 @@ import { geminiKey, generateGeminiText, vertexConfigured, vertexModels } from ".
 import * as runtime from "./agent/runtime";
 import { getSetting } from "./db";
 import * as repo from "./repo";
+import { livekitSource } from "./snapshot";
 
 // Voice calls: a realtime/spoken voice front for a dot. It talks with the user and hands real work
 // to the dot's text agent with send_task. Results land later as work updates.
@@ -74,15 +75,40 @@ const TOOLS = [
 export async function createVoiceSession(
   dotId: string,
   convId: string,
-): Promise<{ provider: "openai" | "gemini"; token?: string; model: string; greeting?: string }> {
+): Promise<{ provider: "openai" | "gemini" | "livekit"; token?: string; model: string; greeting?: string; livekitUrl?: string }> {
   const dot = repo.getDot(dotId);
   if (!dot) throw new Error("Dot not found.");
 
-  const preferredProvider = getSetting("voice_provider") || process.env.DOTS_VOICE_PROVIDER || "auto";
+  const globalVoiceEngine = getSetting("voice_provider") || process.env.DOTS_VOICE_PROVIDER || "auto";
+  const preferredProvider = (dot.voiceEngine && dot.voiceEngine !== "auto") ? dot.voiceEngine : globalVoiceEngine;
   const openAiAvailable = hasKey();
   const geminiAvailable = Boolean(geminiKey()) || vertexConfigured();
 
   const isCute = getSetting("dots_reaction") === "cute";
+  const effectiveTone = dot.voiceTone || (isCute ? "cute" : "professional");
+
+  // If user selected LiveKit
+  if (preferredProvider === "livekit") {
+    const source = livekitSource();
+    const livekitUrl = source === "env" ? process.env.LIVEKIT_URL : source === "settings" ? getSetting("livekit_url") : null;
+    const livekitKey = source === "env" ? process.env.LIVEKIT_API_KEY : source === "settings" ? getSetting("livekit_key") : null;
+    const livekitSecret = source === "env" ? process.env.LIVEKIT_API_SECRET : source === "settings" ? getSetting("livekit_secret") : null;
+
+    if (!livekitUrl || !livekitKey || !livekitSecret) {
+      throw new Error("LiveKit credentials (LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL) are missing. Add them in Settings or your .env file.");
+    }
+    const { AccessToken } = await import("livekit-server-sdk");
+    const at = new AccessToken(livekitKey, livekitSecret, {
+      identity: `user-${convId}`,
+      name: "User",
+    });
+    at.addGrant({ roomJoin: true, room: `room-${dotId}-${convId}` });
+    const greeting = effectiveTone === "cute"
+      ? `Hey! It's ${dot.name}. What can I help you with today?`
+      : `Hello, this is ${dot.name}. How can I assist you?`;
+    
+    return { provider: "livekit", token: await at.toJwt(), model: "livekit-agent", greeting, livekitUrl };
+  }
 
   // If user selected Gemini, or if OpenAI is unavailable while Gemini is available:
   if (preferredProvider === "gemini" || (!openAiAvailable && geminiAvailable)) {
@@ -90,7 +116,7 @@ export async function createVoiceSession(
       throw new Error("No Gemini API key or Vertex AI configured. Add a Gemini key in Settings to call your dots.");
     }
     const model = await getGeminiVoiceModel();
-    const greeting = isCute
+    const greeting = effectiveTone === "cute"
       ? `Hey! It's ${dot.name}. What can I help you with today?`
       : `Hello, this is ${dot.name}. How can I assist you?`;
     return { provider: "gemini", model, greeting };
@@ -118,7 +144,7 @@ export async function createVoiceSession(
       if (geminiAvailable) {
         console.warn("[voice] OpenAI Realtime failed, falling back to Gemini Voice:", err);
         const model = await getGeminiVoiceModel();
-        const greeting = isCute
+        const greeting = effectiveTone === "cute"
           ? `Hey! It's ${dot.name}. What are we working on today?`
           : `Hello, this is ${dot.name}. How can I assist you?`;
         return { provider: "gemini", model, greeting };
@@ -129,7 +155,7 @@ export async function createVoiceSession(
 
   if (geminiAvailable) {
     const model = await getGeminiVoiceModel();
-    const greeting = isCute
+    const greeting = effectiveTone === "cute"
       ? `Hey! It's ${dot.name}. What can I do for you?`
       : `Hello, this is ${dot.name}. How can I help you?`;
     return { provider: "gemini", model, greeting };

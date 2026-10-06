@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bell, Building2, CalendarDays, Check, CheckCircle2, ChevronRight, Code2, Cpu, ExternalLink, KeyRound, Lock, LogOut, Mail, Move, Pencil, Plus, RefreshCw, RotateCcw, ShieldCheck, Sparkles, Terminal, Trash2, UserRound } from "lucide-react";
-import { connectApp, deleteDot, deletePassword, refreshApps, savePassword, setCloudKey, setDefaultModel, setDotReaction, setGeminiKey, setOpenAIKey, setOpenRouterKey, setVertexAI, signInComposio, signOutComposio } from "@/app/actions";
+import { connectApp, deleteDot, deletePassword, refreshApps, savePassword, setCloudKey, setDefaultModel, setDotReaction, setGeminiKey, setOpenAIKey, setOpenRouterKey, setVertexAI, signInComposio, signOutComposio, startOpenRouterSignIn, setLiveKitCredentials } from "@/app/actions";
 import { useStore } from "@/lib/store";
 import { openAfter } from "@/lib/popup";
 import { Empty, PageHeader, RemoveButton, RuleEditor, Section } from "./SettingsKit";
@@ -167,6 +167,7 @@ export default function SettingsView() {
           <ApiKey />
           <GeminiKey />
           <VertexAI />
+          <LiveKit />
           <OpenModelsKey />
           <CloudKey />
           <div className="surface mb-3 flex items-center gap-3 p-4">
@@ -938,9 +939,16 @@ function ApiKey() {
   const [pending, start] = useTransition();
   const isEnvFailed = computer.keySource === "env" && openAiModelCount === 0;
   const open = editing || !computer.hasKey || isEnvFailed;
+  const isConnected = (computer.keySource === "env" && openAiModelCount > 0) || computer.hasKey;
 
   return (
-    <div id="api-key" className="surface mb-3 p-4">
+    <div id="api-key" className="surface relative mb-3 p-4">
+      {isConnected && (
+        <div className="absolute right-3 top-3 flex h-2.5 w-2.5" title="Connection ready">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <div className="text-[14px]">OpenAI API key</div>
@@ -953,7 +961,14 @@ function ApiKey() {
                 ? "Connected. Stored encrypted on this computer."
                 : computer.gemini || computer.vertex || computer.openRouter
                   ? "No OpenAI key. Gemini, Vertex AI, or OpenRouter can still power your dots."
-                  : "Add a provider key to run your dots. Create an OpenAI key at platform.openai.com."}
+                  : (
+                    <span>
+                      Add a provider key to run your dots. Create an OpenAI key at{" "}
+                      <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-brand-readable underline hover:text-foreground">
+                        platform.openai.com
+                      </a>.
+                    </span>
+                  )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1054,7 +1069,14 @@ function CloudKey() {
               ? "Connected from E2B_API_KEY."
               : saved
                 ? "Connected. Each dot gets its own E2B cloud computer that keeps working while your PC sleeps."
-                : "Paste an E2B API key (from e2b.dev) to give each dot a cloud computer that keeps working while your PC sleeps."}
+                : (
+                  <span>
+                    Paste an E2B API key (from{" "}
+                    <a href="https://e2b.dev/" target="_blank" rel="noreferrer" className="text-brand-readable underline hover:text-foreground">
+                      e2b.dev
+                    </a>) to give each dot a cloud computer that keeps working while your PC sleeps.
+                  </span>
+                )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1114,29 +1136,55 @@ function OpenModelsKey() {
   const [editing, setEditing] = useState(false);
   const [key, setKey] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [showManual, setShowManual] = useState(false);
   const [pending, start] = useTransition();
   const saved = computer.openRouter !== null;
   const isEnvFailed = computer.openRouter === "env" && openCount === 0;
+  const isConnected = saved || (computer.openRouter === "env" && !isEnvFailed);
+
   const save = (value: string) =>
     start(async () => {
       const err = await setOpenRouterKey(value);
       setError(err);
-      if (!err) (setKey(""), setEditing(false));
+      if (!err) {
+        setKey("");
+        setEditing(false);
+        setShowManual(false);
+      }
     });
 
+  const connectBrowser = () => {
+    setError(null);
+    start(() => openAfter(startOpenRouterSignIn, setError));
+  };
+
   return (
-    <div id="open-models" className="surface mb-3 scroll-mt-6 p-4">
+    <div id="open-models" className="surface relative mb-3 scroll-mt-6 p-4">
+      {isConnected && (
+        <div className="absolute right-3 top-3 flex h-2.5 w-2.5" title="Connection ready">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <div className="text-[14px]">
-            Open models <span className="text-foreground/40">· optional</span>
+            Open models (OpenRouter) <span className="text-foreground/40">· optional</span>
           </div>
           <div className="text-body-sm text-foreground/55">
             {computer.openRouter === "env"
               ? `Connected from OPENROUTER_API_KEY${openCount ? ` · ${openCount} open models in the model picker` : ""}.`
               : saved
                 ? `Connected${openCount ? ` · ${openCount} open models in the model picker` : ""}. Voice calls still use OpenAI.`
-                : "Paste an OpenRouter key (from openrouter.ai) to run dots on open models like Qwen, DeepSeek, Kimi, GLM and Llama."}
+                : (
+                  <span>
+                    Sign in with OpenRouter in your browser or paste an API key from{" "}
+                    <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="text-brand-readable underline hover:text-foreground">
+                      openrouter.ai
+                    </a>{" "}
+                    to run dots on open models like Qwen, DeepSeek, Kimi, GLM and Llama.
+                  </span>
+                )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1145,44 +1193,80 @@ function OpenModelsKey() {
               <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("")}>
                 Remove
               </button>
-              <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
-                Change
+              <button className="btn-secondary h-8 px-3 text-[13px]" disabled={pending} onClick={connectBrowser}>
+                Reconnect
+              </button>
+              <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => (setEditing(true), setShowManual(true))}>
+                Change Key
               </button>
             </>
           )}
           {computer.openRouter === "env" && !editing && (
-            <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+            <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => (setEditing(true), setShowManual(true))}>
               Override Key
             </button>
           )}
         </div>
       </div>
+
       {(editing || !saved || isEnvFailed) && (
-        <form
-          className="mt-3 flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            save(key);
-          }}
-        >
-          <input className="field font-mono text-[13px]" type="password" placeholder="sk-or-..." value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off" />
-          <button className="btn-primary shrink-0" disabled={pending || !key.trim()}>
-            {pending ? "Checking…" : "Save"}
-          </button>
-          {editing && !isEnvFailed && (
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
-              className="btn-quiet shrink-0"
-              onClick={() => {
-                setEditing(false);
-                setError(null);
-                setKey("");
+              className="btn-primary flex h-9 items-center gap-2 px-3.5 text-[13px]"
+              disabled={pending}
+              onClick={connectBrowser}
+            >
+              <ExternalLink className="size-3.5" />
+              Sign in with OpenRouter (Browser)
+            </button>
+            <button
+              type="button"
+              className="btn-quiet h-9 px-3 text-[12px] text-foreground/60 hover:text-foreground"
+              onClick={() => setShowManual((v) => !v)}
+            >
+              <KeyRound className="mr-1.5 inline size-3.5" />
+              {showManual ? "Hide manual key entry" : "Or enter API key manually"}
+            </button>
+            {editing && !isEnvFailed && (
+              <button
+                type="button"
+                className="btn-quiet h-9 px-2.5 text-[12px]"
+                onClick={() => {
+                  setEditing(false);
+                  setError(null);
+                  setKey("");
+                  setShowManual(false);
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+
+          {showManual && (
+            <form
+              className="flex gap-2 pt-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                save(key);
               }}
             >
-              Cancel
-            </button>
+              <input
+                className="field font-mono text-[13px]"
+                type="password"
+                placeholder="sk-or-v1-..."
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                autoComplete="off"
+              />
+              <button className="btn-primary shrink-0" disabled={pending || !key.trim()}>
+                {pending ? "Checking…" : "Save Key"}
+              </button>
+            </form>
           )}
-        </form>
+        </div>
       )}
       {error && <p className="mt-2 text-caption text-destructive">{error}</p>}
     </div>
@@ -1199,6 +1283,7 @@ function GeminiKey() {
   const [pending, start] = useTransition();
   const saved = computer.gemini !== null;
   const isEnvFailed = computer.gemini === "env" && modelCount === 0;
+  const isConnected = saved || (computer.gemini === "env" && !isEnvFailed);
   const save = (value: string) =>
     start(async () => {
       const err = await setGeminiKey(value);
@@ -1207,7 +1292,13 @@ function GeminiKey() {
     });
 
   return (
-    <div id="gemini-key" className="surface mb-3 scroll-mt-6 p-4">
+    <div id="gemini-key" className="surface relative mb-3 scroll-mt-6 p-4">
+      {isConnected && (
+        <div className="absolute right-3 top-3 flex h-2.5 w-2.5" title="Connection ready">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <div className="text-[14px]">
@@ -1215,10 +1306,18 @@ function GeminiKey() {
           </div>
           <div className="text-body-sm text-foreground/55">
             {computer.gemini === "env"
-              ? `Connected from GEMINI_API_KEY${modelCount ? ` · ${modelCount} models in the picker` : ""}. Ready for chat and voice calls.`
+              ? `Connected from GEMINI_API_KEY${modelCount ? ` · ${modelCount} models in the picker` : ""}. Free Gemini 2.5 Flash and 2.0 Flash-Lite models active.`
               : saved
-                ? `Connected${modelCount ? ` · ${modelCount} models in the picker` : ""}. Ready for chat and voice calls.`
-                : "Add a Gemini API key from Google AI Studio to use Gemini models for chat and voice calls."}
+                ? `Connected${modelCount ? ` · ${modelCount} models in the picker` : ""}. Free Gemini 2.5 Flash and 2.0 Flash-Lite models ready for chat and voice calls.`
+                : (
+                  <span>
+                    Get a free API key from{" "}
+                    <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-brand-readable underline hover:text-foreground">
+                      Google AI Studio
+                    </a>{" "}
+                    to use free models (Gemini 2.5 Flash and 2.0 Flash-Lite). Check AI Studio for active model-specific limits.
+                  </span>
+                )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1283,6 +1382,7 @@ function VertexAI() {
   const [pending, start] = useTransition();
   const saved = computer.vertex !== null;
   const environmentManaged = computer.vertex === "env";
+  const isConnected = (environmentManaged ? !!computer.vertexProject : saved) && modelCount > 0;
   const project = projectDraft ?? computer.vertexProject;
   const location = locationDraft ?? computer.vertexLocation ?? "us-central1";
   const save = (nextProject: string, nextLocation: string, nextCredentials: string, nextUseAdc = false) =>
@@ -1299,7 +1399,13 @@ function VertexAI() {
     });
 
   return (
-    <div id="vertex-ai" className="surface mb-3 scroll-mt-6 p-4">
+    <div id="vertex-ai" className="surface relative mb-3 scroll-mt-6 p-4">
+      {isConnected && (
+        <div className="absolute right-3 top-3 flex h-2.5 w-2.5" title="Connection ready">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <div className="text-[14px]">
@@ -1312,22 +1418,35 @@ function VertexAI() {
                 : "Set VERTEX_AI_PROJECT to complete the environment configuration."
               : saved
                 ? `${computer.vertexProject} · ${computer.vertexLocation}${modelCount ? ` · ${modelCount} Gemini models available` : " · no Gemini models returned"}`
-                : "Use Gemini models through your Google Cloud project and Vertex AI."}
+                : (
+                  <span>
+                    Use Gemini models through your Google Cloud project and{" "}
+                    <a href="https://console.cloud.google.com/vertex-ai" target="_blank" rel="noreferrer" className="text-brand-readable underline hover:text-foreground">
+                      Vertex AI
+                    </a>.
+                  </span>
+                )}
           </div>
         </div>
-        {saved && !environmentManaged && !editing && (
-          <>
-            <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("", "", "", true)}>
-              Remove
-            </button>
+        <div className="flex items-center gap-2">
+          {saved && !environmentManaged && !editing && (
+            <>
+              <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("", "", "", true)}>
+                Remove
+              </button>
+              <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+                Change
+              </button>
+            </>
+          )}
+          {!saved && !editing && !environmentManaged && (
             <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
-              Change
+              Connect
             </button>
-          </>
-        )}
-        {!saved && <span className="rounded-xs bg-black/[0.05] px-2 py-1 font-mono text-[10px] tracking-wider text-foreground/50 uppercase">Not connected</span>}
+          )}
+        </div>
       </div>
-      {(editing || !saved) && !environmentManaged && (
+      {(editing || (!saved && error)) && !environmentManaged && (
         <form
           className="mt-3 space-y-3"
           onSubmit={(event) => {
@@ -1368,7 +1487,115 @@ function VertexAI() {
             <button className="btn-primary shrink-0" disabled={pending || !project.trim()}>
               {pending ? "Connecting…" : "Save and connect"}
             </button>
-            {editing && <button type="button" className="btn-quiet" onClick={() => { setError(null); setProjectDraft(null); setLocationDraft(null); setCredentials(""); setUseAdc(false); setEditing(false); }}>Cancel</button>}
+            <button type="button" className="btn-quiet" onClick={() => { setError(null); setProjectDraft(null); setLocationDraft(null); setCredentials(""); setUseAdc(false); setEditing(false); }}>Cancel</button>
+          </div>
+        </form>
+      )}
+      {error && <p className="mt-2 text-caption text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function LiveKit() {
+  const computer = useStore((s) => s.computer);
+  const [editing, setEditing] = useState(false);
+  const [url, setUrl] = useState("");
+  const [key, setKey] = useState("");
+  const [secret, setSecret] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  const saved = computer.livekit !== null;
+  const environmentManaged = computer.livekit === "env";
+  const isConnected = saved;
+
+  const save = (nextUrl: string, nextKey: string, nextSecret: string) =>
+    start(async () => {
+      const err = await setLiveKitCredentials(nextUrl, nextKey, nextSecret);
+      setError(err);
+      if (!err) {
+        setEditing(false);
+        setUrl("");
+        setKey("");
+        setSecret("");
+      }
+    });
+
+  return (
+    <div id="livekit" className="surface relative mb-3 scroll-mt-6 p-4">
+      {isConnected && (
+        <div className="absolute right-3 top-3 flex h-2.5 w-2.5" title="Connection ready">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+        </div>
+      )}
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <div className="text-[14px]">
+            LiveKit Server <span className="text-foreground/40">· optional</span>
+          </div>
+          <div className="text-body-sm text-foreground/55">
+            {environmentManaged
+              ? "Configured from environment. Ready for LiveKit agents."
+              : saved
+                ? "Connected. Ready for LiveKit agents."
+                : (
+                  <span>
+                    Add your LiveKit server credentials from{" "}
+                    <a href="https://cloud.livekit.io/" target="_blank" rel="noreferrer" className="text-brand-readable underline hover:text-foreground">
+                      LiveKit Cloud
+                    </a>{" "}
+                    or a self-hosted instance to support custom voice agents.
+                  </span>
+                )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {saved && !environmentManaged && !editing && (
+            <>
+              <button className="btn-quiet h-8 px-3 text-[13px]" disabled={pending} onClick={() => save("", "", "")}>
+                Remove
+              </button>
+              <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+                Change
+              </button>
+            </>
+          )}
+          {!saved && !editing && (
+            <button className="btn-secondary h-8 px-3 text-[13px]" onClick={() => setEditing(true)}>
+              Connect
+            </button>
+          )}
+        </div>
+      </div>
+      {(editing || (!saved && error)) && (
+        <form
+          className="mt-3 flex flex-col gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save(url, key, secret);
+          }}
+        >
+          <input className="field font-mono text-[13px]" placeholder="LiveKit URL (wss://...)" value={url} onChange={(e) => setUrl(e.target.value)} autoComplete="off" />
+          <input className="field font-mono text-[13px]" placeholder="API Key" value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off" />
+          <input className="field font-mono text-[13px]" type="password" placeholder="API Secret" value={secret} onChange={(e) => setSecret(e.target.value)} autoComplete="off" />
+          <div className="flex gap-2">
+            <button className="btn-primary shrink-0" disabled={pending || !url.trim() || !key.trim() || !secret.trim()}>
+              {pending ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              className="btn-quiet shrink-0"
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+                setUrl("");
+                setKey("");
+                setSecret("");
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </form>
       )}

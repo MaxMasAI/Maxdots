@@ -222,6 +222,14 @@ export async function saveGeminiKey(key: string): Promise<string | null> {
   return null;
 }
 
+export const DEFAULT_FREE_GEMINI_MODELS = [
+  GEMINI_PREFIX + "gemini-2.5-flash",
+  GEMINI_PREFIX + "gemini-2.0-flash",
+  GEMINI_PREFIX + "gemini-2.0-flash-lite",
+  GEMINI_PREFIX + "gemini-1.5-flash",
+  GEMINI_PREFIX + "gemini-1.5-pro",
+];
+
 export async function geminiModels(): Promise<string[]> {
   const key = apiKey();
   if (!key) return [];
@@ -229,30 +237,43 @@ export async function geminiModels(): Promise<string[]> {
 
   const models: string[] = [];
   let pageToken: string | undefined;
-  do {
-    const url = new URL(MODELS_URL);
-    if (pageToken) url.searchParams.set("pageToken", pageToken);
-    const response = await fetch(url, { headers: { "x-goog-api-key": key } });
-    if (!response.ok) throw new Error(`Gemini models: ${response.status}`);
-    const page = (await response.json()) as {
-      models?: { name?: string; supportedGenerationMethods?: string[] }[];
-      nextPageToken?: string;
-    };
-    for (const model of page.models ?? []) {
-      const id = model.name?.replace(/^models\//, "");
-      if (
-        id?.startsWith("gemini-") &&
-        !/^gemini-2\./.test(id) &&
-        !/(?:embedding|image|tts|audio|live|robotics)/i.test(id) &&
-        model.supportedGenerationMethods?.includes("generateContent")
-      ) {
-        models.push(GEMINI_PREFIX + id);
+  try {
+    do {
+      const url = new URL(MODELS_URL);
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      const response = await fetch(url, { headers: { "x-goog-api-key": key } });
+      if (!response.ok) throw new Error(`Google API returned ${response.status} ${response.statusText}`);
+      const page = (await response.json()) as {
+        models?: { name?: string; supportedGenerationMethods?: string[] }[];
+        nextPageToken?: string;
+      };
+      for (const model of page.models ?? []) {
+        const id = model.name?.replace(/^models\//, "");
+        if (
+          id?.startsWith("gemini-") &&
+          !/(?:embedding|image|tts|audio|live|robotics)/i.test(id) &&
+          model.supportedGenerationMethods?.includes("generateContent")
+        ) {
+          models.push(GEMINI_PREFIX + id);
+        }
       }
-    }
-    pageToken = page.nextPageToken;
-  } while (pageToken);
+      pageToken = page.nextPageToken;
+    } while (pageToken);
+  } catch (err) {
+    console.warn("[gemini] Error fetching dynamic models:", err);
+    throw err;
+  }
 
-  const ids = [...new Set(models)].sort((a, b) => b.localeCompare(a));
+  const ids = [...new Set(models)].sort((a, b) => {
+    // Prioritize free flash models first
+    const score = (m: string) =>
+      m.includes("2.5-flash") ? 100 :
+      m.includes("2.0-flash") && !m.includes("lite") ? 95 :
+      m.includes("2.0-flash-lite") ? 90 :
+      m.includes("1.5-flash") ? 85 :
+      m.includes("pro") ? 80 : 50;
+    return score(b) - score(a) || b.localeCompare(a);
+  });
   g.__dotsGeminiModels = { at: Date.now(), ids };
   return ids;
 }

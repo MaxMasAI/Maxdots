@@ -8,7 +8,7 @@ import { getSetting, setSetting } from "@/server/db";
 import { emit } from "@/server/bus";
 import { computerInfo } from "@/server/snapshot";
 import { models, resetModels, saveApiKey } from "@/server/agent/client";
-import { saveOpenRouterKey } from "@/server/agent/openrouter";
+import { generateOpenRouterAuthUrl, saveOpenRouterKey } from "@/server/agent/openrouter";
 import { saveGeminiKey, saveVertexConfig, vertexModels } from "@/server/agent/gemini";
 import * as triggers from "@/server/triggers";
 import * as composio from "@/server/composio";
@@ -18,9 +18,9 @@ import type { Attachment, Dot, DotReaction, Look, RuleDecision, TriggerApp, Trig
 
 // All mutations go through here; the UI updates from the event stream, not from return values.
 
-export async function createDot(input: { name: string; purpose: string; instructions?: string; look: Look }): Promise<string> {
+export async function createDot(input: { name: string; purpose: string; instructions?: string; look: Look; voiceTone?: DotReaction; voiceEngine?: "auto" | "livekit" | "gemini" | "openai" }): Promise<string> {
   const name = input.name.trim() || "Dot";
-  const dot = repo.createDot({ name, purpose: input.purpose.trim(), instructions: input.instructions?.trim(), look: input.look });
+  const dot = repo.createDot({ name, purpose: input.purpose.trim(), instructions: input.instructions?.trim(), look: input.look, voiceTone: input.voiceTone, voiceEngine: input.voiceEngine });
   repo.addMessage({
     dotId: dot.id,
     role: "dot",
@@ -207,6 +207,16 @@ export async function setOpenRouterKey(key: string): Promise<string | null> {
   return null;
 }
 
+/** Start browser OAuth sign-in with OpenRouter (returns authorization URL to open in browser). */
+export async function startOpenRouterSignIn(): Promise<{ url?: string; error?: string }> {
+  try {
+    const { url } = generateOpenRouterAuthUrl();
+    return { url };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 /** Paste a Gemini key in Settings to add Gemini models (empty removes it). */
 export async function setGeminiKey(key: string): Promise<string | null> {
   const err = await saveGeminiKey(key.trim());
@@ -237,6 +247,30 @@ export async function setVertexAI(project: string, location: string, credentials
     emit({ type: "computer", data: computerInfo() });
   }
   return connectionError;
+}
+
+/** Paste LiveKit credentials in Settings to add LiveKit agents (empty removes it). */
+export async function setLiveKitCredentials(url: string, key: string, secret: string): Promise<string | null> {
+  const tUrl = url.trim();
+  const tKey = key.trim();
+  const tSecret = secret.trim();
+
+  if (tUrl && tKey && tSecret) {
+    if (!tUrl.startsWith("ws://") && !tUrl.startsWith("wss://")) {
+      return "LiveKit URL must start with ws:// or wss://";
+    }
+    setSetting("livekit_url", tUrl);
+    setSetting("livekit_key", tKey);
+    setSetting("livekit_secret", tSecret);
+  } else if (!tUrl && !tKey && !tSecret) {
+    setSetting("livekit_url", null);
+    setSetting("livekit_key", null);
+    setSetting("livekit_secret", null);
+  } else {
+    return "Please provide all three values (URL, Key, and Secret) or clear all fields to remove.";
+  }
+  emit({ type: "computer", data: computerInfo() });
+  return null;
 }
 
 // ---------- triggers (Composio API key) ----------
@@ -357,7 +391,7 @@ export async function confirmConnectCard(messageId: string): Promise<boolean> {
 export async function startVoiceCall(
   dotId: string,
   convId: string,
-): Promise<{ provider?: "openai" | "gemini"; token?: string; model?: string; greeting?: string; error?: string }> {
+): Promise<{ provider?: "openai" | "gemini" | "livekit"; token?: string; model?: string; greeting?: string; livekitUrl?: string; error?: string }> {
   try {
     return await voice.createVoiceSession(dotId, convId);
   } catch (err) {
@@ -374,7 +408,7 @@ export async function sendGeminiVoiceMessage(
   return await voice.communicateGeminiVoice(dotId, convId, text);
 }
 
-export async function setVoiceProvider(provider: "auto" | "gemini" | "openai") {
+export async function setVoiceProvider(provider: "auto" | "gemini" | "openai" | "livekit") {
   setSetting("voice_provider", provider);
 }
 

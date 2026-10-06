@@ -56,12 +56,12 @@ export default function CallsView() {
   const [query, setQuery] = useState("");
   const [callingDotId, setCallingDotId] = useState<string | null>(null);
   const [callError, setCallError] = useState<string | null>(null);
-  const [voiceEngine, setVoiceEngine] = useState<"auto" | "gemini" | "openai">("auto");
+  const [voiceEngine, setVoiceEngine] = useState<"auto" | "livekit" | "gemini" | "openai">("auto");
 
   // Load call history and preferred voice engine
   useEffect(() => {
     getVoiceProvider().then((p) => {
-      if (p === "gemini" || p === "openai" || p === "auto") setVoiceEngine(p);
+      if (p === "gemini" || p === "openai" || p === "livekit" || p === "auto") setVoiceEngine(p);
     });
   }, []);
   useEffect(() => {
@@ -170,7 +170,7 @@ export default function CallsView() {
             <select
               value={voiceEngine}
               onChange={(e) => {
-                const val = e.target.value as "auto" | "gemini" | "openai";
+                const val = e.target.value as "auto" | "livekit" | "gemini" | "openai";
                 setVoiceEngine(val);
                 void setVoiceProvider(val);
               }}
@@ -178,6 +178,7 @@ export default function CallsView() {
               title="Select Voice Model Engine"
             >
               <option value="auto" className="bg-[#242428] text-white">Auto (Gemini / OpenAI)</option>
+              <option value="livekit" className="bg-[#242428] text-white">LiveKit Voice</option>
               <option value="gemini" className="bg-[#242428] text-white">Google Gemini Voice</option>
               <option value="openai" className="bg-[#242428] text-white">OpenAI Realtime</option>
             </select>

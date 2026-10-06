@@ -390,8 +390,8 @@ function DetailBody({ slug }: { slug: string }) {
         </div>
         {d.tools.length > 8 && <input className="field mb-2 h-8" placeholder="Filter tools" value={q} onChange={(e) => setQ(e.target.value)} />}
         <div className="divide-y divide-black/[0.06] rounded-lg border border-black/[0.06]">
-          {tools.slice(0, 200).map((t) => (
-            <div key={t.slug} className="px-3 py-2">
+          {tools.slice(0, 200).map((t, index) => (
+            <div key={`${t.slug}-${index}`} className="px-3 py-2">
               <div className="text-[13px]">{t.name || t.slug}</div>
               <div className="font-mono text-[10px] text-foreground/40">{t.slug}</div>
               {t.description && <div className="mt-0.5 line-clamp-2 text-caption text-foreground/55">{t.description}</div>}

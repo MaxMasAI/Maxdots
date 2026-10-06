@@ -4,7 +4,7 @@ import { emit } from "./bus";
 import { Cron } from "croner";
 import { normalizeLook } from "@/lib/look";
 import type {
-  AppTrigger, Attachment, CardData, Channel, Conversation, Dot, DotStatus, Look, Memory, Message, MessageRole, PasswordEntry, Routine, Rule, RuleDecision, Skill,
+  AppTrigger, Attachment, CardData, Channel, Conversation, Dot, DotReaction, DotStatus, Look, Memory, Message, MessageRole, PasswordEntry, Routine, Rule, RuleDecision, Skill,
 } from "@/lib/types";
 
 type Row = Record<string, unknown>;
@@ -22,6 +22,8 @@ const toDot = (r: Row): Dot => ({
   activity: activity.get(r.id as string) ?? null,
   localAccess: r.local_access === 1,
   model: (r.model as string) ?? null,
+  voiceTone: (r.voice_tone as DotReaction) ?? null,
+  voiceEngine: (r.voice_engine as "auto" | "livekit" | "gemini" | "openai") ?? null,
   createdAt: r.created_at as number,
 });
 
@@ -43,10 +45,10 @@ export function findDotByName(name: string): Dot | null {
   return r ? toDot(r) : null;
 }
 
-export function createDot(input: { name: string; purpose: string; instructions?: string; look: Look }): Dot {
+export function createDot(input: { name: string; purpose: string; instructions?: string; look: Look; voiceTone?: DotReaction; voiceEngine?: "auto" | "livekit" | "gemini" | "openai" }): Dot {
   const dotId = id("dot");
-  db().prepare("INSERT INTO dots (id, name, purpose, instructions, look, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(dotId, input.name, input.purpose, input.instructions ?? "", JSON.stringify(input.look), now());
+  db().prepare("INSERT INTO dots (id, name, purpose, instructions, look, voice_tone, voice_engine, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(dotId, input.name, input.purpose, input.instructions ?? "", JSON.stringify(input.look), input.voiceTone ?? null, input.voiceEngine ?? null, now());
   const dot = getDot(dotId)!;
   emit({ type: "dot", data: dot });
   return dot;
@@ -54,7 +56,7 @@ export function createDot(input: { name: string; purpose: string; instructions?:
 
 export function updateDot(
   dotId: string,
-  patch: Partial<Pick<Dot, "name" | "purpose" | "instructions" | "look" | "status" | "localAccess" | "model">>,
+  patch: Partial<Pick<Dot, "name" | "purpose" | "instructions" | "look" | "status" | "localAccess" | "model" | "voiceTone" | "voiceEngine">>,
 ): Dot | null {
   const cols: string[] = [];
   const vals: (string | number | null)[] = [];
@@ -85,6 +87,14 @@ export function updateDot(
   if (patch.localAccess !== undefined) {
     cols.push("local_access = ?");
     vals.push(patch.localAccess ? 1 : 0);
+  }
+  if (patch.voiceTone !== undefined) {
+    cols.push("voice_tone = ?");
+    vals.push(patch.voiceTone);
+  }
+  if (patch.voiceEngine !== undefined) {
+    cols.push("voice_engine = ?");
+    vals.push(patch.voiceEngine);
   }
   if (cols.length) db().prepare(`UPDATE dots SET ${cols.join(", ")} WHERE id = ?`).run(...vals, dotId);
   const dot = getDot(dotId);

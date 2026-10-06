@@ -1,4 +1,5 @@
 import "server-only";
+import crypto from "crypto";
 import OpenAI from "openai";
 import { getSetting, setSetting } from "../db";
 import { seal, unseal } from "../vault";
@@ -10,6 +11,7 @@ import { seal, unseal } from "../vault";
 export const OPENROUTER_PREFIX = "openrouter:";
 const BASE_URL = "https://openrouter.ai/api/v1";
 const KEY_SETTING = "openrouter_key";
+const VERIFIER_SETTING = "openrouter_pkce_verifier";
 const HEADERS = { "HTTP-Referer": "https://github.com/MaxMasAI/Maxdots", "X-Title": "Maxdots" };
 
 // Open-weight families worth offering (OpenRouter also lists closed models; those stay out of this group).
@@ -20,7 +22,7 @@ const OPEN_FAMILIES = [
   /^z-ai\//,
   /^meta-llama\//,
   /^openai\/gpt-oss/,
-  /^google\/gemma/,
+  /^google\//,
   /^mistralai\/(mistral-small|devstral|ministral|mixtral|magistral-small|mistral-nemo)/,
   /^nousresearch\//,
   /^minimax\//,
@@ -29,7 +31,7 @@ const OPEN_FAMILIES = [
   /^arcee-ai\//,
 ];
 // Variants and API-only models that aren't open weights, even inside open families.
-const SKIP = [/:(batch|free|online|extended|beta|thinking)$/, /-exp\b/, /-prime\b/, /^qwen\/.*-(max|plus|turbo|flash|omni)/, /flashx/];
+const SKIP = [/:(batch|online|extended|beta|thinking)$/, /-exp\b/, /-prime\b/, /^qwen\/.*-(max|plus|turbo|flash|omni)/, /flashx/];
 // Best first when an open model has to be picked for the user (no OpenAI key yet, or no choice made).
 // Matched by family, newest first, so they keep working as new versions ship.
 const MAIN_PREFERENCE = [/^moonshotai\/kimi-k\d/, /^deepseek\/deepseek-v\d(\.\d)?$/, /^z-ai\/glm-\d(\.\d)?$/, /^qwen\/qwen[\d.]+-coder/, /^openai\/gpt-oss-120b/];
@@ -91,6 +93,52 @@ export async function saveOpenRouterKey(key: string): Promise<string | null> {
   setSetting(KEY_SETTING, seal(key));
   g.__dotsOpenModels = undefined;
   return null;
+}
+
+/** Start browser-based OAuth PKCE flow to sign in to OpenRouter without copying keys. */
+export function generateOpenRouterAuthUrl(): { url: string } {
+  const verifier = crypto.randomBytes(32).toString("base64url");
+  const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
+  const appUrl = process.env.DOTS_PUBLIC_URL ?? "http://localhost:3100";
+  const callbackUrl = `${appUrl}/api/openrouter/oauth`;
+  setSetting(VERIFIER_SETTING, seal(verifier));
+  const url = `https://openrouter.ai/auth?callback_url=${encodeURIComponent(callbackUrl)}&code_challenge=${challenge}&code_challenge_method=S256`;
+  return { url };
+}
+
+/** Complete browser OAuth sign-in with OpenRouter by exchanging the code for an API key. */
+export async function finishOpenRouterAuth(code: string): Promise<string> {
+  const sealed = getSetting(VERIFIER_SETTING);
+  if (!sealed) throw new Error("No active OpenRouter authentication request found.");
+  let verifier = "";
+  try {
+    verifier = unseal(sealed);
+  } catch {
+    throw new Error("Could not decrypt the OpenRouter code verifier.");
+  }
+  const res = await fetch(`${BASE_URL}/auth/keys`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      code,
+      code_verifier: verifier,
+      code_challenge_method: "S256",
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`OpenRouter authorization failed (${res.status}): ${errText || res.statusText}`);
+  }
+
+  const data = (await res.json()) as { key?: string };
+  if (!data.key) throw new Error("OpenRouter didn't return an API key.");
+
+  const err = await saveOpenRouterKey(data.key);
+  if (err) throw new Error(err);
+
+  setSetting(VERIFIER_SETTING, null);
+  return data.key;
 }
 
 /** Open-weight models on OpenRouter that can call tools, newest first, as app model ids. Cached for an hour. */

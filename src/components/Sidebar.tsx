@@ -462,7 +462,7 @@ export default function Sidebar() {
                         dotsLayout === "columns" ? "flex-col items-start gap-1.5 border border-black/[0.06] p-2.5" : ""
                       } ${activeDot === d.id ? "bg-card shadow-2xs" : "hover:bg-black/[0.04]"}`}
                     >
-                      <DotOrb look={d.look} status={d.status} size={dotsLayout === "columns" ? 38 : 32} />
+                      <DotOrb look={d.look} status={d.status} size={dotsLayout === "columns" ? 42 : 32} />
                       <span className={`min-w-0 ${dotsLayout === "columns" ? "w-full" : "flex-1"}`}>
                         <span className="block truncate text-[13px] font-semibold text-foreground group-hover/dot:text-[#7b83eb] transition-colors">
                           {d.name}
@@ -662,7 +662,7 @@ function DotChats({ dot, items, defaultOpen, renderConversation }: { dot: Dot; i
     <section>
       <button type="button" className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-black/[0.04]" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
         <ChevronDown className={`size-3.5 text-foreground/35 transition-transform ${open ? "" : "-rotate-90"}`} />
-        <DotOrb look={dot.look} status={dot.status} size={24} />
+        <DotOrb look={dot.look} status={dot.status} size={26} />
         <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{dot.name}</span>
         <span className="font-mono text-[10px] text-foreground/40">{items.length}</span>
       </button>

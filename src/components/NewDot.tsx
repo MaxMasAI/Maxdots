@@ -18,13 +18,15 @@ export default function NewDot() {
   const [name, setName] = useState("");
   const [purpose, setPurpose] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [voiceTone, setVoiceTone] = useState<"cute" | "professional">("cute");
+  const [voiceEngine, setVoiceEngine] = useState<"auto" | "livekit" | "gemini" | "openai">("auto");
   const placeholder = "Milo";
   const [pending, start] = useTransition();
   const wide = useMediaQuery("(min-width: 640px)");
 
   const create = () =>
     start(async () => {
-      const id = await createDot({ name: name || placeholder, purpose, instructions, look });
+      const id = await createDot({ name: name || placeholder, purpose, instructions, look, voiceTone, voiceEngine });
       markRead(id);
       router.push(`/dots/${id}`);
     });
@@ -101,6 +103,42 @@ export default function NewDot() {
           <div className="mt-8">
             <div className="eyebrow mb-3">Appearance</div>
             <LookEditor look={look} onChange={setLook} />
+          </div>
+
+          <div className="mt-8 flex gap-6">
+            <div className="flex-1">
+              <div className="eyebrow mb-3">Voice Tone</div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVoiceTone("cute")}
+                  className={`flex-1 rounded-md border py-2 text-[13px] transition-colors ${voiceTone === "cute" ? "border-brand-readable bg-brand/10 text-brand-readable" : "border-black/10 text-foreground/65 hover:border-black/25"}`}
+                >
+                  Cute
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVoiceTone("professional")}
+                  className={`flex-1 rounded-md border py-2 text-[13px] transition-colors ${voiceTone === "professional" ? "border-foreground bg-foreground text-card" : "border-black/10 text-foreground/65 hover:border-black/25"}`}
+                >
+                  Professional
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1">
+              <div className="eyebrow mb-3">Voice Engine</div>
+              <select
+                value={voiceEngine}
+                onChange={(e) => setVoiceEngine(e.target.value as any)}
+                className="w-full h-10 rounded-md border border-black/10 bg-transparent px-3 text-[13px] text-foreground focus:border-brand-readable focus:outline-none"
+              >
+                <option value="auto">Auto (Default)</option>
+                <option value="livekit">LiveKit Agent</option>
+                <option value="gemini">Gemini Voice</option>
+                <option value="openai">OpenAI Realtime</option>
+              </select>
+            </div>
           </div>
 
           <button className="btn-primary mt-8 h-10 w-full text-[15px]" disabled={pending} onClick={create}>

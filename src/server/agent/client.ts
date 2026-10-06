@@ -122,8 +122,18 @@ async function resolveGemini(): Promise<{ main: string; review: string; availabl
   if (!geminiKey()) return null;
   const available = await geminiModels();
   if (!available.length) return null;
-  const main = available.find((id) => /^gemini:gemini-3\.\d+-flash$/.test(id)) ?? available.find((id) => /-pro(?:-|$)/.test(id)) ?? available[0];
-  const review = available.find((id) => /-flash-lite(?:-|$)/.test(id)) ?? available.find((id) => /-flash(?:-|$)/.test(id)) ?? main;
+  const main =
+    available.find((id) => /gemini-2\.5-flash/.test(id)) ??
+    available.find((id) => /gemini-2\.0-flash$/.test(id)) ??
+    available.find((id) => /gemini-1\.5-flash/.test(id)) ??
+    available.find((id) => /-pro(?:-|$)/.test(id)) ??
+    available[0];
+  const review =
+    available.find((id) => /-flash-lite(?:-|$)/.test(id) && !/preview|exp/i.test(id)) ??
+    available.find((id) => /-flash-lite(?:-|$)/.test(id)) ??
+    available.find((id) => /1\.5-flash(?:-|$)/.test(id)) ??
+    available.find((id) => /-flash(?:-|$)/.test(id)) ??
+    main;
   return { main, review, available };
 }
 

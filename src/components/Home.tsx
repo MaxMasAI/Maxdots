@@ -93,9 +93,9 @@ export default function Home() {
                       key={d.id}
                       type="button"
                       onClick={() => setPicked(d.id)}
-                      className={`flex h-7 items-center gap-1.5 rounded-md border pr-2.5 pl-1 text-[13px] transition-colors ${d.id === target?.id ? "border-foreground bg-foreground text-card" : "border-black/10 text-foreground/60 hover:border-black/20 hover:text-foreground"}`}
+                      className={`flex h-8 items-center gap-2 rounded-lg border pr-3 pl-1.5 text-[13px] font-medium transition-colors ${d.id === target?.id ? "border-foreground bg-foreground text-card" : "border-black/10 text-foreground/70 hover:border-black/20 hover:text-foreground"}`}
                     >
-                      <DotOrb look={d.look} status={d.status} size={18} />
+                      <DotOrb look={d.look} status={d.status} size={22} />
                       {d.name}
                     </button>
                   ))}

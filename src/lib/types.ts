@@ -45,6 +45,8 @@ export type Dot = {
   activity: string | null; // e.g. "Searching the web"
   localAccess: boolean; // may this dot run things on the user's own computer?
   model: string | null; // null = use the default model
+  voiceTone: DotReaction | null; // "cute" or "professional"
+  voiceEngine: "auto" | "livekit" | "gemini" | "openai" | null;
   createdAt: number;
 };
 
@@ -158,6 +160,7 @@ export type ComputerInfo = {
   openRouter: "env" | "settings" | null; // OpenRouter key for open models
   gemini: "env" | "settings" | null; // Google Gemini API key
   vertex: "env" | "settings" | null; // Google Vertex AI
+  livekit: "env" | "settings" | null; // LiveKit credentials
   vertexProject: string;
   vertexLocation: string;
   dotReaction: DotReaction;

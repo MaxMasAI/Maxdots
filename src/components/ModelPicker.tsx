@@ -13,7 +13,14 @@ const provider = (id: string) => (id.startsWith(OPEN) ? "Open models" : id.start
 function hint(id: string): string | null {
   if (id.startsWith(OPEN)) return "Open model · OpenRouter";
   if (id.startsWith(VERTEX)) return "Google Cloud Vertex AI";
-  if (id.startsWith(GEMINI)) return "Google Gemini";
+  if (id.startsWith(GEMINI)) {
+    if (id.includes("flash-lite")) return "Gemini 2.0 Flash Lite · Free & Ultra Fast";
+    if (id.includes("2.5-flash")) return "Gemini 2.5 Flash · Free Tier";
+    if (id.includes("2.0-flash")) return "Gemini 2.0 Flash · Free Tier";
+    if (id.includes("1.5-flash")) return "Gemini 1.5 Flash · Free Tier";
+    if (id.includes("pro")) return "Gemini Pro · Deep Reasoning";
+    return "Google Gemini · Free Tier";
+  }
   if (/-pro\b/.test(id)) return "Strongest · slower";
   if (/-nano\b/.test(id)) return "Fastest · cheapest";
   if (/-mini\b/.test(id)) return "Fast · cheaper";

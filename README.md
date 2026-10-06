@@ -10,7 +10,12 @@ Maxdots is an open-source enterprise workspace for personal AI agents ("dots") t
 
 Inspired by the dark-theme aesthetics and collaboration mechanics of modern team platforms, Maxdots allows you to configure, manage, and collaborate with autonomous AI agents across chat, voice calls, channels, and automated workflows.
 
+<div align="center">
+  <img src="./public/diagram.png" alt="Maxdots Architecture Diagram" width="100%" />
+</div>
+
 ---
+
 
 ## 🌟 Key Features
 
@@ -172,6 +177,8 @@ Provide `OPENROUTER_API_KEY` to access open-source models (DeepSeek, Qwen, GLM, 
 
 ## 📦 Project Structure
 
+[![Architecture diagram of maxmasai/maxdots](https://gitdiagram.com/maxmasai/maxdots/diagram.png)](https://gitdiagram.com/maxmasai/maxdots?utm_source=readme&utm_medium=picture)
+
 ```text
 Maxdots/
 ├── build/                 # Desktop and build resources (icons, assets)
@@ -243,3 +250,9 @@ pnpm desktop:build
 ## 📄 License
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+
+
+
+
+
+

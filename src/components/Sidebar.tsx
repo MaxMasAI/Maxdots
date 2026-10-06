@@ -226,14 +226,14 @@ export default function Sidebar() {
         onClickCapture={(e) => (e.target as HTMLElement).closest("a") && setSidebarOpen(false)}
         className={`fixed inset-y-0 left-0 z-50 flex w-[336px] max-w-[90vw] shrink-0 bg-sidebar shadow-2xl transition-[width,transform] duration-200 lg:static lg:z-auto lg:max-w-none lg:translate-x-0 lg:shadow-none ${sidebarCollapsed ? "lg:w-16" : "lg:w-[336px]"} ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-      <nav aria-label="Main navigation" className="hidden w-16 shrink-0 flex-col items-center gap-2 bg-rail py-3 text-white lg:flex">
+      <nav aria-label="Main navigation" className="flex w-16 shrink-0 flex-col items-center gap-2 bg-rail py-3 text-white">
         <button
           type="button"
           onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
           aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!sidebarCollapsed}
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="mb-1 grid size-10 place-items-center rounded-xl text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+          className="mb-1 hidden size-10 place-items-center rounded-xl text-white/75 transition-colors hover:bg-white/10 hover:text-white lg:grid"
         >
           {sidebarCollapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}
         </button>
